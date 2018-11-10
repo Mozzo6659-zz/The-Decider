@@ -25,13 +25,18 @@ class MainViewController: UIViewController {
     @IBOutlet weak var imgMeWinner: UIImageView!
     
     @IBOutlet weak var imgArrow: UIImageView!
+    let animKey = "transform.rotation"
+    
+    let animKeyValueArrow = "360"
+    
+    var meWin = false
+    let myPrefs = appUserPrefs()
     
     var winImages : [UIImage] = []
     var audioPlayer : AVAudioPlayer!
     
     var winnerisMe = false
     var winnerisYou = false
-    var nogames = 1
     var yourScore = 0
     var myScore = 0
     
@@ -78,18 +83,17 @@ class MainViewController: UIViewController {
         
         
         let remainder = (1 + arc4random() % 100) % 2
-        
-        
-        
+       
         imgArrow.image = UIImage(contentsOfFile: remainder == 0 ? "3dblueuarrowdown" : "3dbluuarrowup")
+   
+        meWin = (remainder == 0)
         
+        spinView(vw: imgArrow, duration: 0.1, repeatTimes: 10.0, anKey: animKeyValueArrow)
         
-        spinView(vw: imgArrow, duration: 0.1, repeatTimes: 10.0, anKey: "360")
-        
-        
-//        if (playSound) {
-//            [self playSoundOnPlayer:@"Drumroll" ofType:@"m4a"]
-//        }
+        if (myPrefs.soundOn()) {
+            playSoundWithFile(filename: "Drumroll")
+            
+        }
         
     }
     //MARK:-Game
@@ -100,7 +104,7 @@ class MainViewController: UIViewController {
     }
     
     func updateScoreViews() {
-        if nogames > 1 {
+        if myPrefs.getNoGames() > 1 {
             imgMeScore.image=UIImage(contentsOfFile: String(format:"%d",myScore))
             imgYouScore.image=UIImage(contentsOfFile: String(format:"%d",yourScore))
         }else{
@@ -113,11 +117,11 @@ class MainViewController: UIViewController {
        
             var result = false
             
-            if (nogames == 1) {
+            if (myPrefs.getNoGames() == 1) {
                 if (myScore == 1 || yourScore == 1) {
                     result = true
                 }
-            }else if (nogames == 3) {
+            }else if (myPrefs.getNoGames() == 3) {
                 if (myScore == 2 || yourScore == 2) {
                     result = true
                 }
@@ -129,9 +133,30 @@ class MainViewController: UIViewController {
             return result;
         
     }
+    
+    func winnerIsMe() -> Bool {
+        var result = false
+        
+        if seriesFinished() {
+            result = myScore > yourScore ? true : false
+        }
+        return result
+    
+    }
+    
+    func winnerIsYou() -> Bool {
+        var result = false
+    
+        if seriesFinished() {
+            result = yourScore > myScore ? true : false
+        }
+        return result
+    
+    }
+    
     //MARK:- Spinning
     func spinView(vw:UIImageView, duration:Double, repeatTimes:Float, anKey:String) {
-        let fullRotation = CABasicAnimation(keyPath: "transform.rotation")
+        let fullRotation = CABasicAnimation(keyPath: animKey)
         fullRotation.delegate = self as? CAAnimationDelegate
         fullRotation.fromValue = 0
         fullRotation.toValue  = ((360 * Double.pi) / 180)
@@ -139,62 +164,77 @@ class MainViewController: UIViewController {
         fullRotation.repeatCount = repeatTimes
         vw.layer.add(fullRotation, forKey: anKey)
     }
+    
+    func animationDidStop(_ anim: CAAnimation,
+                          finished flag: Bool) {
+        if anim.value(forKey: animKey) as! String == animKeyValueArrow {
+            if meWin {
+                myScore += 1
+            }else{
+                yourScore += 1
+            }
+            updateScoreViews()
+            
+            if seriesFinished() {
+                
+            }
+            
+        }
+    }
 }
 /*
- -(void)spin {
- //youWinnerView.animationImages = nil;
+ -(void)animationDidStop:(CAAnimation *)anim finished:(BOOL)flag {
+ 
+ if (!spinningIons) {
+ if (isUP) {
+ yourScore += 1;
+ [self updateYouView];
+ }else {
+ myScore += 1;
+ [self updatemeView];
+ }
+ 
+ 
  
  if (self.seriesFinished) {
- [self resetSeries];
- }
  
- int remainder;
- 
- rnd =  1 + arc4random() % 100;
- remainder = rnd % 2;
+ spinningIons = YES;
+ [spinButton setHidden:YES];
  
  
- if (remainder == 0) {
- 
- if (arrowUpView.superview == nil) {
- arrowUpView.center = arrowDownView.center;
- [arrowDownView removeFromSuperview];
- [self.view addSubview:arrowUpView];
- 
- }
- arrowView = arrowUpView;
- isUP = YES;
- }else {
- if (arrowDownView.superview == nil) {
- arrowDownView.center = arrowUpView.center;
- [arrowUpView removeFromSuperview];
- [self.view addSubview:arrowDownView];
- 
- }
- arrowView = arrowDownView;
- isUP = NO;
- }
- 
- 
- CABasicAnimation *fullRotation;
- 
- fullRotation = [CABasicAnimation animationWithKeyPath:@"transform.rotation"];
- 
- [fullRotation setDelegate:self];
- 
- fullRotation.fromValue = [NSNumber numberWithFloat:0];
- 
- fullRotation.toValue = [NSNumber numberWithFloat:((360* M_PI)/180)];
- 
- fullRotation.duration = 0.1;
- 
- fullRotation.repeatCount = 10;
- 
- spinningIons = NO;
- [arrowView.layer addAnimation:fullRotation forKey:@"360"];
- 
- if (playSound) {
- [self playSoundOnPlayer:@"Drumroll" ofType:@"m4a"];
- }
- */
+[self spinView:meIconView];
 
+
+if (playSound) {
+    [self playSoundOnPlayer:!cheerForYou?  @"cheerbig": @"boobig" ofType:@"m4a"];
+}
+
+}else {
+ 
+    [self spinView:youIconView];
+    
+    
+    if (playSound) {
+        [self playSoundOnPlayer:cheerForYou? @"cheerbig": @"boobig" ofType:@"m4a"];
+    }
+}
+
+[self showWinner];
+
+}else {
+    
+    if (playSound) {
+        
+        /*this is the yay or boo*/
+        [self playSound:isUP];
+    }
+    
+}
+
+
+}else {
+    
+    [self resetSeries];
+}
+}
+*/
