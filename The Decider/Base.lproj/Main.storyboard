@@ -102,6 +102,8 @@
                         <outlet property="imgMeWinner" destination="6v9-b8-dii" id="TyQ-LH-EZG"/>
                         <outlet property="imgYouScore" destination="6JT-Hg-FAv" id="3Wz-g1-Cya"/>
                         <outlet property="imgYouWinner" destination="Vnq-fo-EVY" id="vq7-hQ-fzF"/>
+                        <outlet property="meIconView" destination="Voy-GK-Ljh" id="699-qr-f9v"/>
+                        <outlet property="youIconView" destination="Wyr-va-T8Z" id="hac-tR-r9R"/>
                     </connections>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="dkx-z0-nzr" sceneMemberID="firstResponder"/>
