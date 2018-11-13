@@ -10,8 +10,10 @@ import UIKit
 import AVFoundation
 import QuartzCore
 
-class MainViewController: UIViewController {
+class MainViewController: UIViewController, CAAnimationDelegate {
 
+    @IBOutlet weak var settingsButton: UIButton!
+    @IBOutlet weak var spinButton: UIButton!
     @IBOutlet weak var imgYouScore: UIImageView!
     
     @IBOutlet weak var youIconView: UIImageView!
@@ -25,10 +27,13 @@ class MainViewController: UIViewController {
     @IBOutlet weak var imgMeWinner: UIImageView!
     
     @IBOutlet weak var imgArrow: UIImageView!
-    let animKey = "transform.rotation"
+    
+    
+    let animKey = "transform.rotation.z"
     
     let animKeyValueArrow = "360"
-    
+    let animKeyValueYOUME = "360YOUME"
+    let animKeyDescription = "animationType"
     var meWin = false
     let myPrefs = appUserPrefs()
     
@@ -42,11 +47,19 @@ class MainViewController: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        self.becomeFirstResponder()
         loadImages()
         resetSeries()
-        // Do any additional setup after loading the view, typically from a nib.
+        
     }
-
+    override var canBecomeFirstResponder: Bool {
+        return true
+    }
+    
+    override func viewWillAppear(_ animated: Bool) {
+        navigationController?.navigationBar.isHidden = true
+        updateScoreViews()
+    }
     //MARK:- Build
     
     func playSoundWithFile(filename:String) {
@@ -57,21 +70,13 @@ class MainViewController: UIViewController {
             }catch{
                 print("Error playng sound")
             }
-//            do {
-//                try! AVAudioSession.sharedInstance().setCategory(AVAudioSessionCategoryPlayback)
-//                try! AVAudioSession.sharedInstance().setActive(true)
-//                try alarmAudioPlayer = AVAudioPlayer(data: sound.data, fileTypeHint: AVFileTypeWAVE)
-//                alarmAudioPlayer!.play()
-//            } catch {
-//                print("error initializing AVAudioPlayer")
-//            }
+
         }
     }
     
     func loadImages() {
         for i in 1 ... 12 {
-            //winImages.append(String(format: "winner%d", i))
-            winImages.append(UIImage(contentsOfFile: String(format: "winner%d", i))!)
+            winImages.append(UIImage(named: String(format: "winner%d", i))!)
         }
     }
     //MARK:- IBActions
@@ -79,12 +84,15 @@ class MainViewController: UIViewController {
     @IBAction func spinArrow(_ sender: Any) {
         if seriesFinished() {
             resetSeries()
+        }else{
+            settingsButton.isHidden = true
+            spinButton.isHidden = true
         }
         
         
         let remainder = (1 + arc4random() % 100) % 2
        
-        imgArrow.image = UIImage(contentsOfFile: remainder == 0 ? "3dblueuarrowdown" : "3dbluuarrowup")
+        imgArrow.image = UIImage(named: remainder == 0 ? "3dbluearrowdown" : "3dbluuarrowup")
    
         meWin = (remainder == 0)
         
@@ -100,17 +108,22 @@ class MainViewController: UIViewController {
     func resetSeries() {
         yourScore = 0
         myScore = 0
+        settingsButton.isHidden = false
         updateScoreViews()
     }
     
-    func updateScoreViews() {
-        if myPrefs.getNoGames() > 1 {
-            imgMeScore.image=UIImage(contentsOfFile: String(format:"%d",myScore))
-            imgYouScore.image=UIImage(contentsOfFile: String(format:"%d",yourScore))
-        }else{
-            imgMeScore.image=nil
-            imgYouScore.image=nil
+    override func motionEnded(_ motion: UIEvent.EventSubtype, with event: UIEvent?) {
+        if motion == .motionShake {
+            spinArrow(self)
         }
+    }
+    func updateScoreViews() {
+        imgMeScore.image=UIImage(named: String(format:"%d",myScore))
+        imgYouScore.image=UIImage(named: String(format:"%d",yourScore))
+        
+            imgYouScore.isHidden = (myPrefs.getNoGames() == 1)
+            imgMeScore.isHidden = (myPrefs.getNoGames() == 1)
+        
     }
    
     func seriesFinished() -> Bool {
@@ -155,19 +168,26 @@ class MainViewController: UIViewController {
     }
     
     //MARK:- Spinning
-    func spinView(vw:UIImageView, duration:Double, repeatTimes:Float, anKey:String) {
+    func spinView(vw:UIImageView, duration:CFTimeInterval, repeatTimes:Float, anKey:String) {
         let fullRotation = CABasicAnimation(keyPath: animKey)
-        fullRotation.delegate = self as? CAAnimationDelegate
+        fullRotation.delegate = self
         fullRotation.fromValue = 0
         fullRotation.toValue  = ((360 * Double.pi) / 180)
+        fullRotation.isCumulative = true
         fullRotation.duration = duration
         fullRotation.repeatCount = repeatTimes
+        fullRotation.setValue(anKey, forKey: animKeyDescription)
         vw.layer.add(fullRotation, forKey: anKey)
+        
     }
     
     func animationDidStop(_ anim: CAAnimation,
                           finished flag: Bool) {
-        if anim.value(forKey: animKey) as! String == animKeyValueArrow {
+        
+        spinButton.isHidden = false
+        let sAnimDesc = anim.value(forKey: animKeyDescription) as! String
+        
+        if sAnimDesc == animKeyValueArrow {
             if meWin {
                 myScore += 1
             }else{
@@ -176,65 +196,42 @@ class MainViewController: UIViewController {
             updateScoreViews()
             
             if seriesFinished() {
+                spinView(vw:meWin ? meIconView : youIconView, duration: 0.6, repeatTimes: 6.0, anKey: animKeyValueYOUME)
+                if (myPrefs.soundOn()) {
+                    if meWin {
+                        playSoundWithFile(filename:myPrefs.cheerForMe() ? "cheerbig" : "boobig" )
+                    }else{
+                        playSoundWithFile(filename:myPrefs.cheerForMe() ? "boobig" : "cheerbig" )
+                    }
+                    
+                }
+                showWinner()
                 
             }
             
+        }else{
+            if sAnimDesc == animKeyValueYOUME {
+                resetSeries()
+            }
         }
     }
-}
-/*
- -(void)animationDidStop:(CAAnimation *)anim finished:(BOOL)flag {
- 
- if (!spinningIons) {
- if (isUP) {
- yourScore += 1;
- [self updateYouView];
- }else {
- myScore += 1;
- [self updatemeView];
- }
- 
- 
- 
- if (self.seriesFinished) {
- 
- spinningIons = YES;
- [spinButton setHidden:YES];
- 
- 
-[self spinView:meIconView];
-
-
-if (playSound) {
-    [self playSoundOnPlayer:!cheerForYou?  @"cheerbig": @"boobig" ofType:@"m4a"];
-}
-
-}else {
- 
-    [self spinView:youIconView];
-    
-    
-    if (playSound) {
-        [self playSoundOnPlayer:cheerForYou? @"cheerbig": @"boobig" ofType:@"m4a"];
-    }
-}
-
-[self showWinner];
-
-}else {
-    
-    if (playSound) {
+    func showWinner() {
+       
+        if let anView = meWin ? imgMeWinner : imgYouWinner {
+            anView.animationImages = winImages
+            anView.animationDuration=1.0
+            anView.animationRepeatCount = 3
+            anView.startAnimating()
+        }
         
-        /*this is the yay or boo*/
-        [self playSound:isUP];
+
+    }
+    
+    //MARK:- Navigation
+    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
+        //let vc = segue.destination as! SettingsViewController
+        
+
     }
     
 }
-
-
-}else {
-    
-    [self resetSeries];
-}
-}
-*/
