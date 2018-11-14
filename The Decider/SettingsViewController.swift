@@ -14,8 +14,13 @@ class SettingsViewController: UIViewController {
     
     @IBOutlet weak var switchSounds: UISwitch!
     
-    @IBOutlet weak var segGamesInSeries: UISegmentedControl!
+    //@IBOutlet weak var segGamesInSeries: UISegmentedControl!
     
+    @IBOutlet weak var vwSounds: UIView!
+    
+    @IBOutlet weak var vwGames: UIView!
+    @IBOutlet weak var vwCheer: UIView!
+    @IBOutlet weak var segGamesInSeries: UISegmentedControl!
     @IBOutlet weak var segCheerFor: UISegmentedControl!
     
     override func viewDidLoad() {
@@ -28,6 +33,7 @@ class SettingsViewController: UIViewController {
     func showSelections() {
         switchSounds.isOn = myPrefs.soundOn()
         
+        //segGamesInSeries.selectedSegmentIndex = 2
         switch myPrefs.getNoGames() {
             case 1:
                 segGamesInSeries.selectedSegmentIndex = 0

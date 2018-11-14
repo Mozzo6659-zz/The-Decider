@@ -90,7 +90,7 @@ class MainViewController: UIViewController, CAAnimationDelegate {
         }
         
         
-        let remainder = (1 + arc4random() % 100) % 2
+        let remainder = getRandom() % 2
        
         imgArrow.image = UIImage(named: remainder == 0 ? "3dbluearrowdown" : "3dbluuarrowup")
    
@@ -109,6 +109,7 @@ class MainViewController: UIViewController, CAAnimationDelegate {
         yourScore = 0
         myScore = 0
         settingsButton.isHidden = false
+        spinButton.isHidden = false
         updateScoreViews()
     }
     
@@ -184,10 +185,12 @@ class MainViewController: UIViewController, CAAnimationDelegate {
     func animationDidStop(_ anim: CAAnimation,
                           finished flag: Bool) {
         
-        spinButton.isHidden = false
+        
+        
         let sAnimDesc = anim.value(forKey: animKeyDescription) as! String
         
         if sAnimDesc == animKeyValueArrow {
+            
             if meWin {
                 myScore += 1
             }else{
@@ -199,20 +202,39 @@ class MainViewController: UIViewController, CAAnimationDelegate {
                 spinView(vw:meWin ? meIconView : youIconView, duration: 0.6, repeatTimes: 6.0, anKey: animKeyValueYOUME)
                 if (myPrefs.soundOn()) {
                     if meWin {
-                        playSoundWithFile(filename:myPrefs.cheerForMe() ? "cheerbig" : "boobig" )
+                        playSoundWithFile(filename:myPrefs.cheerForMe() ? "cheerbig" : getBooFile() )
                     }else{
-                        playSoundWithFile(filename:myPrefs.cheerForMe() ? "boobig" : "cheerbig" )
+                        playSoundWithFile(filename:myPrefs.cheerForMe() ? getBooFile() : "cheerbig" )
                     }
                     
                 }
                 showWinner()
                 
             }
-            
+            spinButton.isHidden = false
         }else{
             if sAnimDesc == animKeyValueYOUME {
                 resetSeries()
             }
+        }
+    }
+    
+    func getRandom() -> Int {
+        return  Int(arc4random_uniform(100) + 1)
+    }
+    
+    func getBooFile() -> String {
+        //change the boo file up a bit
+        
+        //print(num)
+        //print((1 + arc4random() % 100))
+        let remainder = getRandom() % 3
+    
+    
+        if remainder == 0 {
+            return "Boo2"
+        }else{
+            return "boobig"
         }
     }
     func showWinner() {
